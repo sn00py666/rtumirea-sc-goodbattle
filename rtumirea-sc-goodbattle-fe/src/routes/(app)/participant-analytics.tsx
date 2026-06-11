@@ -53,7 +53,8 @@ function ErrorFrequencies({
   return (
     <div className="grid gap-2">
       {frequencies.slice(0, 6).map((item) => {
-        const percent = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0.0'
+        const percent =
+          total > 0 ? ((item.count / total) * 100).toFixed(1) : '0.0'
 
         return (
           <div
@@ -137,10 +138,15 @@ function Heatmap({ cells }: { cells: HeatmapCell[] }) {
       <div className="overflow-x-auto">
         <div className="flex min-w-max gap-1">
           {weeks.map((week, weekIndex) => (
-            <div className="grid grid-rows-7 gap-1" key={`${week[0]?.key ?? weekIndex}`}>
+            <div
+              className="grid grid-rows-7 gap-1"
+              key={`${week[0]?.key ?? weekIndex}`}
+            >
               {week.map((day) => (
                 <div className="group relative h-4 w-4" key={day.key}>
-                  <div className={`h-4 w-4 rounded-sm ${heatmapColor(day.count)}`} />
+                  <div
+                    className={`h-4 w-4 rounded-sm ${heatmapColor(day.count)}`}
+                  />
                   {day.count != null && (
                     <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md border bg-card px-2 py-1 text-[11px] text-card-foreground opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100">
                       {day.label}
@@ -156,8 +162,7 @@ function Heatmap({ cells }: { cells: HeatmapCell[] }) {
       <div className="col-span-full flex items-center gap-3 text-xs text-muted-foreground">
         <span>Интенсивность:</span>
         <div className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded-sm bg-muted" />
-          0
+          <span className="h-3 w-3 rounded-sm bg-muted" />0
         </div>
         <div className="flex items-center gap-1">
           <span className="h-3 w-3 rounded-sm bg-pink-200" />
@@ -184,13 +189,7 @@ function heatmapColor(count: null | number) {
   return 'bg-pink-600'
 }
 
-function MetricCard({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
+function MetricCard({ label, value }: { label: string; value: string }) {
   return (
     <Card>
       <CardContent className="pt-0">
@@ -220,7 +219,9 @@ function ParticipantAnalyticsPage() {
   const analytics = analyticsQuery.data
 
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'finished' | 'in_progress'>('all')
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'finished' | 'in_progress'
+  >('all')
   const [sortBy, setSortBy] = useState<
     'attempts_desc' | 'date_asc' | 'date_desc' | 'place_asc' | 'solved_desc'
   >('date_desc')
@@ -280,7 +281,8 @@ function ParticipantAnalyticsPage() {
         </CardHeader>
         <CardContent>
           <Typography className="mb-3" variant="muted">
-            1 клетка = 1 день. Наведите курсор, чтобы увидеть дату и число баттлов.
+            1 клетка = 1 день. Наведите курсор, чтобы увидеть дату и число
+            баттлов.
           </Typography>
           <Heatmap cells={analytics.heatmap} />
         </CardContent>
@@ -309,7 +311,9 @@ function ParticipantAnalyticsPage() {
             <select
               className="h-10 rounded-md border bg-background px-3 text-sm"
               onChange={(event) =>
-                setStatusFilter(event.target.value as 'all' | 'finished' | 'in_progress')
+                setStatusFilter(
+                  event.target.value as 'all' | 'finished' | 'in_progress',
+                )
               }
               value={statusFilter}
             >
@@ -386,7 +390,12 @@ function ParticipantAnalyticsPage() {
 function sortParticipantBattles(
   left: AnalyticsBattle,
   right: AnalyticsBattle,
-  sortBy: 'attempts_desc' | 'date_asc' | 'date_desc' | 'place_asc' | 'solved_desc',
+  sortBy:
+    | 'attempts_desc'
+    | 'date_asc'
+    | 'date_desc'
+    | 'place_asc'
+    | 'solved_desc',
 ) {
   if (sortBy === 'date_asc') {
     return left.date.localeCompare(right.date)

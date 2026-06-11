@@ -32,8 +32,6 @@ from app.schemas import (
     AnalyticsFrequencyResponse,
     AnalyticsHeatmapCellResponse,
     BattleDetailAnalyticsResponse,
-    BattleMlRiskPredictionResponse,
-    BattleMlRiskResponse,
     BattleParticipantAnalyticsResponse,
     BattleSubmissionAnalyticsResponse,
     BattleSubmissionTestResultAnalyticsResponse,
@@ -43,11 +41,6 @@ from app.schemas import (
     PeakLoadBucketResponse,
     TaskPlatformAnalyticsResponse,
 )
-
-try:
-    from sklearn.linear_model import LogisticRegression
-except Exception:  # pragma: no cover - fallback when sklearn is unavailable
-    LogisticRegression = None
 
 
 @dataclass(slots=True)
@@ -64,19 +57,6 @@ class RoomSnapshot:
     solved_percent: float
     submissions: list[BattleSubmissionAnalyticsResponse]
     tasks: list[BattleTaskAnalyticsResponse]
-
-
-@dataclass(slots=True)
-class ParticipantTaskProgress:
-    attempts: int
-    elapsed_ratio: float
-    failed_ratio: float
-    historical_avg_attempts_to_ac: float
-    last_error_code: int
-    participant_id: str
-    used_hint: int
-    user_id: str
-    username: str
 
 
 def _safe_percent(numerator: float, denominator: float) -> float:
@@ -108,24 +88,6 @@ def _room_deadline(room: Room) -> datetime:
     if room.finished_at is not None:
         return room.finished_at
     return _room_start_time(room) + timedelta(minutes=room.time_limit)
-
-
-def _error_code(verdict: str) -> int:
-    mapping = {
-        SubmissionStatus.WRONG_ANSWER.value: 1,
-        SubmissionStatus.RUNTIME_ERROR.value: 2,
-        SubmissionStatus.TIME_LIMIT_EXCEEDED.value: 3,
-        SubmissionStatus.COMPILE_ERROR.value: 4,
-    }
-    return mapping.get(verdict, 0)
-
-
-def _risk_level(score: float) -> str:
-    if score < 0.4:
-        return 'low'
-    if score <= 0.7:
-        return 'medium'
-    return 'high'
 
 
 async def _load_room_snapshots(session: AsyncSession, rooms: list[Room]) -> dict[str, RoomSnapshot]:
@@ -844,256 +806,4 @@ async def get_admin_platform_analytics(session: AsyncSession) -> AdminPlatformAn
         top_tasks_by_popularity=top_tasks_by_popularity,
         peaks_by_hour=peaks_by_hour,
         peaks_by_weekday=peaks_by_weekday,
-    )
-
-
-def _build_rule_based_risk(progress: ParticipantTaskProgress) -> float:
-    score = 0.2
-    score += min(progress.elapsed_ratio * 0.35, 0.35)
-    score += min((progress.attempts / 6) * 0.25, 0.25)
-    score += progress.failed_ratio * 0.2
-    score += min(progress.historical_avg_attempts_to_ac / 10, 0.1)
-    score += (progress.last_error_code / 10) * 0.1
-    if progress.attempts == 0 and progress.elapsed_ratio > 0.4:
-        score += 0.1
-    if progress.used_hint:
-        score -= 0.05
-    return max(min(round(score, 4), 0.99), 0.01)
-
-
-async def get_battle_ml_risk(
-    session: AsyncSession,
-    *,
-    battle_id: str,
-) -> Optional[BattleMlRiskResponse]:
-    room = await session.get(Room, battle_id)
-    if room is None:
-        return None
-
-    snapshots = await _load_room_snapshots(session, [room])
-    snapshot = snapshots.get(room.id)
-    if snapshot is None:
-        return None
-
-    room_tasks = (
-        await session.exec(
-            select(RoomTaskLink)
-            .where(RoomTaskLink.room_id == room.id)
-            .order_by(RoomTaskLink.position)
-        )
-    ).all()
-    if not room_tasks:
-        return None
-
-    current_task_index = min(max(room.current_task_index, 0), len(room_tasks) - 1)
-    task_id = room_tasks[current_task_index].task_id
-
-    participant_members = (
-        await session.exec(
-            select(RoomMember)
-            .where(
-                RoomMember.room_id == room.id,
-                RoomMember.role == MemberRole.PARTICIPANT,
-            )
-        )
-    ).all()
-    if not participant_members:
-        return BattleMlRiskResponse(
-            battle_id=room.id,
-            task_id=task_id,
-            model='rule_based',
-            predictions=[],
-        )
-
-    users = (
-        await session.exec(
-            select(User).where(User.id.in_({member.user_id for member in participant_members}))
-        )
-    ).all()
-    username_by_user_id = {user.id: user.username for user in users}
-
-    all_finished_rooms = (
-        await session.exec(
-            select(Room).where(Room.finished_at.is_not(None), Room.id != room.id)
-        )
-    ).all()
-    historical_submissions = (
-        await session.exec(
-            select(Submission)
-            .where(Submission.room_id.in_({finished_room.id for finished_room in all_finished_rooms}))
-            .order_by(Submission.created_at)
-        )
-    ).all() if all_finished_rooms else []
-    historical_hints = (
-        await session.exec(
-            select(AiHintEvent).where(AiHintEvent.room_id.in_({finished_room.id for finished_room in all_finished_rooms}))
-        )
-    ).all() if all_finished_rooms else []
-
-    attempts_to_ac_by_user: dict[str, list[int]] = defaultdict(list)
-    for finished_room in all_finished_rooms:
-        room_deadline = _room_deadline(finished_room)
-        room_submissions = [submission for submission in historical_submissions if submission.room_id == finished_room.id]
-        room_submissions_by_user_task: dict[tuple[str, str], list[Submission]] = defaultdict(list)
-        for submission in room_submissions:
-            room_submissions_by_user_task[(submission.user_id, submission.task_id)].append(submission)
-
-        for (_user_id, _task_id), submissions_for_task in room_submissions_by_user_task.items():
-            attempts = 0
-            for submission in submissions_for_task:
-                if submission.created_at > room_deadline:
-                    continue
-                attempts += 1
-                if submission.verdict == SubmissionStatus.ACCEPTED:
-                    attempts_to_ac_by_user[submission.user_id].append(attempts)
-                    break
-
-    global_hist_attempts = round(
-        mean([value for values in attempts_to_ac_by_user.values() for value in values]),
-        2,
-    ) if attempts_to_ac_by_user else 3.0
-
-    current_submissions = (
-        await session.exec(
-            select(Submission)
-            .where(Submission.room_id == room.id, Submission.task_id == task_id)
-            .order_by(Submission.created_at)
-        )
-    ).all()
-
-    current_hints = (
-        await session.exec(
-            select(AiHintEvent)
-            .where(AiHintEvent.room_id == room.id, AiHintEvent.task_id == task_id)
-        )
-    ).all()
-
-    now = datetime.now()
-    room_start = _room_start_time(room)
-    elapsed_ratio = min(max((now - room_start).total_seconds() / max(room.time_limit * 60, 1), 0.0), 1.0)
-
-    submissions_by_user: dict[str, list[Submission]] = defaultdict(list)
-    for submission in current_submissions:
-        submissions_by_user[submission.user_id].append(submission)
-
-    hints_by_user = {hint.user_id for hint in current_hints}
-
-    inference_progress: list[ParticipantTaskProgress] = []
-    for member in participant_members:
-        user_submissions = submissions_by_user.get(member.user_id, [])
-        attempts = len(user_submissions)
-        failed_attempts = sum(1 for item in user_submissions if item.verdict != SubmissionStatus.ACCEPTED)
-        last_error_code = _error_code(user_submissions[-1].verdict.value) if user_submissions else 0
-        inference_progress.append(
-            ParticipantTaskProgress(
-                participant_id=member.id,
-                user_id=member.user_id,
-                username=username_by_user_id.get(member.user_id, 'Unknown'),
-                attempts=attempts,
-                elapsed_ratio=round(elapsed_ratio, 4),
-                failed_ratio=round((failed_attempts / attempts), 4) if attempts else 1.0,
-                used_hint=1 if member.user_id in hints_by_user else 0,
-                last_error_code=last_error_code,
-                historical_avg_attempts_to_ac=round(
-                    mean(attempts_to_ac_by_user.get(member.user_id, [global_hist_attempts])),
-                    2,
-                ),
-            )
-        )
-
-    # Build training dataset from historical snapshots.
-    historical_hints_lookup = {(hint.room_id, hint.user_id, hint.task_id): hint for hint in historical_hints}
-    X_train: list[list[float]] = []
-    y_train: list[int] = []
-
-    for finished_room in all_finished_rooms:
-        room_deadline = _room_deadline(finished_room)
-        room_start_time = _room_start_time(finished_room)
-        room_submissions = [submission for submission in historical_submissions if submission.room_id == finished_room.id]
-
-        grouped: dict[tuple[str, str], list[Submission]] = defaultdict(list)
-        for submission in room_submissions:
-            if submission.created_at > room_deadline:
-                continue
-            grouped[(submission.user_id, submission.task_id)].append(submission)
-
-        for (user_id, task_key), submissions_for_task in grouped.items():
-            solved_after_index = [
-                any(item.verdict == SubmissionStatus.ACCEPTED for item in submissions_for_task[index:])
-                for index in range(len(submissions_for_task))
-            ]
-            used_hint = 1 if (finished_room.id, user_id, task_key) in historical_hints_lookup else 0
-            user_hist_attempts = round(mean(attempts_to_ac_by_user.get(user_id, [global_hist_attempts])), 2)
-
-            failures = 0
-            for index, submission in enumerate(submissions_for_task):
-                attempts = index + 1
-                if submission.verdict != SubmissionStatus.ACCEPTED:
-                    failures += 1
-
-                elapsed = min(
-                    max((submission.created_at - room_start_time).total_seconds() / max(finished_room.time_limit * 60, 1), 0.0),
-                    1.0,
-                )
-
-                X_train.append([
-                    float(attempts),
-                    float(failures / attempts),
-                    float(elapsed),
-                    float(used_hint),
-                    float(_error_code(submission.verdict.value)),
-                    float(user_hist_attempts),
-                ])
-                y_train.append(0 if solved_after_index[index] else 1)
-
-    model_name = 'rule_based'
-    risk_scores: list[float] = []
-
-    if LogisticRegression is not None and len(X_train) >= 20 and len(set(y_train)) > 1:
-        model = LogisticRegression(max_iter=300)
-        model.fit(X_train, y_train)
-        risk_scores = [
-            float(
-                model.predict_proba([
-                    [
-                        float(progress.attempts),
-                        float(progress.failed_ratio),
-                        float(progress.elapsed_ratio),
-                        float(progress.used_hint),
-                        float(progress.last_error_code),
-                        float(progress.historical_avg_attempts_to_ac),
-                    ]
-                ])[0][1]
-            )
-            for progress in inference_progress
-        ]
-        model_name = 'logistic_regression'
-    else:
-        risk_scores = [_build_rule_based_risk(progress) for progress in inference_progress]
-
-    confidence = 'high' if model_name == 'logistic_regression' else 'low'
-
-    predictions = [
-        BattleMlRiskPredictionResponse(
-            participant_id=progress.participant_id,
-            user_id=progress.user_id,
-            username=progress.username,
-            attempts=progress.attempts,
-            elapsed_ratio=round(progress.elapsed_ratio, 3),
-            risk_score=round(risk_score, 3),
-            risk_level=_risk_level(risk_score),
-            confidence=confidence,
-        )
-        for progress, risk_score in sorted(
-            zip(inference_progress, risk_scores),
-            key=lambda item: item[1],
-            reverse=True,
-        )
-    ]
-
-    return BattleMlRiskResponse(
-        battle_id=room.id,
-        task_id=task_id,
-        model=model_name,
-        predictions=predictions,
     )

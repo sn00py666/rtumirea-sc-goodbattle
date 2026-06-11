@@ -58,7 +58,9 @@ function PublicUserAnalyticsPage() {
           <Stat
             label="Ср. место"
             value={
-              analytics.average_place != null ? String(analytics.average_place) : '—'
+              analytics.average_place != null
+                ? String(analytics.average_place)
+                : '—'
             }
           />
         </CardContent>
@@ -73,14 +75,17 @@ function PublicUserAnalyticsPage() {
             <Typography variant="muted">Нет данных</Typography>
           )}
           {analytics.battles.map((battle) => (
-            <div className="flex items-center justify-between rounded-lg border p-3" key={battle.id}>
+            <div
+              className="flex items-center justify-between rounded-lg border p-3"
+              key={battle.id}
+            >
               <div>
                 <Typography className="font-semibold" variant="h3">
                   {battle.title}
                 </Typography>
                 <Typography variant="muted">
-                  {battle.date} • место: {battle.place ?? '—'} • {battle.solved_tasks}/
-                  {battle.total_tasks}
+                  {battle.date} • место: {battle.place ?? '—'} •{' '}
+                  {battle.solved_tasks}/{battle.total_tasks}
                 </Typography>
               </div>
 
@@ -103,13 +108,7 @@ function PublicUserAnalyticsPage() {
   )
 }
 
-function Stat({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <Typography className="text-2xl font-semibold" variant="h3">

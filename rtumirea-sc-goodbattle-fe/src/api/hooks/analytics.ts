@@ -19,18 +19,6 @@ export function battleAnalyticsQueryOptions(battleId: string) {
   )
 }
 
-export function battleMlRiskQueryOptions(battleId: string) {
-  return $api.queryOptions(
-    'get',
-    '/api/analytics/battles/{battle_id}/ml-risk',
-    analyticsBattlePathParams(battleId),
-    {
-      retry: false,
-      throwOnError: false,
-    },
-  )
-}
-
 export function organizerAnalyticsQueryOptions() {
   return $api.queryOptions('get', '/api/analytics/organizer/me', undefined, {
     retry: false,
@@ -68,18 +56,6 @@ export function useBattleAnalyticsQuery(battleId: string) {
   return $api.useQuery(
     'get',
     '/api/analytics/battles/{battle_id}',
-    analyticsBattlePathParams(battleId),
-    {
-      retry: false,
-      throwOnError: false,
-    },
-  )
-}
-
-export function useBattleMlRiskQuery(battleId: string) {
-  return $api.useQuery(
-    'get',
-    '/api/analytics/battles/{battle_id}/ml-risk',
     analyticsBattlePathParams(battleId),
     {
       retry: false,

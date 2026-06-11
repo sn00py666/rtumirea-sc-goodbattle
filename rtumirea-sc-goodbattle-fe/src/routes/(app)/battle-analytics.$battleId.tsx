@@ -6,10 +6,8 @@ import type { components } from '@/api/__generated__/schema'
 
 import {
   battleAnalyticsQueryOptions,
-  battleMlRiskQueryOptions,
   queryClient,
   useBattleAnalyticsQuery,
-  useBattleMlRiskQuery,
 } from '@/api'
 import {
   Badge,
@@ -26,15 +24,15 @@ import { useAuthStore } from '@/stores/auth-store'
 export const Route = createFileRoute('/(app)/battle-analytics/$battleId')({
   component: BattleAnalyticsDetailPage,
   loader: async ({ params }) => {
-    await Promise.all([
-      queryClient.ensureQueryData(battleAnalyticsQueryOptions(params.battleId)),
-      queryClient.ensureQueryData(battleMlRiskQueryOptions(params.battleId)),
-    ])
+    await queryClient.ensureQueryData(
+      battleAnalyticsQueryOptions(params.battleId),
+    )
   },
   pendingComponent: PagePending,
 })
 
-type BattleSubmission = components['schemas']['BattleSubmissionAnalyticsResponse']
+type BattleSubmission =
+  components['schemas']['BattleSubmissionAnalyticsResponse']
 type BattleSubmissionTestResult = {
   error_message?: null | string
   execution_memory_kb: number
@@ -54,7 +52,6 @@ function BattleAnalyticsDetailPage() {
   const user = useAuthStore((state) => state.user)
 
   const battleQuery = useBattleAnalyticsQuery(battleId)
-  const mlRiskQuery = useBattleMlRiskQuery(battleId)
   const battle = battleQuery.data
 
   const [showAllSubmissions, setShowAllSubmissions] = useState(false)
@@ -66,18 +63,14 @@ function BattleAnalyticsDetailPage() {
     (participant) => participant.user_id === user?.id,
   )
   const isParticipantView = currentParticipant != null
-  const isBattleActive =
-    battle?.status === 'in_progress' || battle?.status === 'running'
-  const mlPredictions = (mlRiskQuery.data?.predictions ?? []).filter((prediction) =>
-    isParticipantView ? prediction.user_id === user?.id : true,
-  )
-  const hasMlPredictions = mlPredictions.length > 0
 
   const visibleSubmissions = useMemo(() => {
     if (!isParticipantView) return battleSubmissions
     if (showAllSubmissions) return battleSubmissions
     if (!user) return []
-    return battleSubmissions.filter((submission) => submission.user_id === user.id)
+    return battleSubmissions.filter(
+      (submission) => submission.user_id === user.id,
+    )
   }, [battleSubmissions, isParticipantView, showAllSubmissions, user])
 
   const submissionsByUser = useMemo(() => {
@@ -158,10 +151,14 @@ function BattleAnalyticsDetailPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           <Typography variant="muted">
-            Успешное решение = статус <strong>Accepted</strong> (все тесты пройдены).
+            Успешное решение = статус <strong>Accepted</strong> (все тесты
+            пройдены).
           </Typography>
           {battle.participants.map((participant) => (
-            <details className="rounded-lg border p-3" key={participant.participant_id}>
+            <details
+              className="rounded-lg border p-3"
+              key={participant.participant_id}
+            >
               <summary className="flex cursor-pointer items-center justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <Typography className="font-semibold" variant="small">
@@ -176,16 +173,13 @@ function BattleAnalyticsDetailPage() {
                   </Link>
                 </div>
                 <Typography variant="muted">
-                  {participant.solved_tasks} задач • {participant.submissions_count}{' '}
-                  отправок
+                  {participant.solved_tasks} задач •{' '}
+                  {participant.submissions_count} отправок
                 </Typography>
               </summary>
 
               <div className="mt-3 grid grid-cols-4 gap-2">
-                <MetricLine
-                  label="Место"
-                  value={`#${participant.place}`}
-                />
+                <MetricLine label="Место" value={`#${participant.place}`} />
                 <MetricLine
                   label="Решено"
                   value={String(participant.solved_tasks)}
@@ -214,61 +208,6 @@ function BattleAnalyticsDetailPage() {
         </CardContent>
       </Card>
 
-      {!isBattleActive && !hasMlPredictions ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>ML-прогноз</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Typography variant="muted">
-              Прогноз риска показывается только во время активного баттла, чтобы
-              помочь участнику скорректировать стратегию до конца времени.
-            </Typography>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>ML: риск не успеть решить текущую задачу</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <Typography variant="muted">
-              Модель: {mlRiskQuery.data?.model ?? 'rule_based'}
-            </Typography>
-
-            {!isBattleActive && hasMlPredictions && (
-              <Typography variant="muted">
-                Показан сохраненный прогноз (постфактум для завершенного баттла).
-              </Typography>
-            )}
-
-            {mlPredictions.map((prediction) => (
-              <div
-                className="flex items-center justify-between rounded-lg border p-3"
-                key={prediction.participant_id}
-              >
-                <div>
-                  <Typography className="font-semibold" variant="h3">
-                    {prediction.username}
-                  </Typography>
-                  <Typography variant="muted">
-                    попыток: {prediction.attempts} • прошло времени баттла:{' '}
-                    {formatElapsedRatioPercent(prediction.elapsed_ratio)}
-                  </Typography>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline">{prediction.confidence}</Badge>
-                  <Badge>{formatRiskLevel(prediction.risk_level)}</Badge>
-                  <Typography className="font-semibold" variant="small">
-                    {formatRiskScorePercent(prediction.risk_score)}
-                  </Typography>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle>Метрики по задачам</CardTitle>
@@ -292,7 +231,9 @@ function BattleAnalyticsDetailPage() {
                   label="Ср. время успешного решения"
                   value={
                     task.average_time_to_ac_seconds != null
-                      ? formatDuration(Math.round(task.average_time_to_ac_seconds))
+                      ? formatDuration(
+                          Math.round(task.average_time_to_ac_seconds),
+                        )
                       : 'N/A'
                   }
                 />
@@ -308,7 +249,10 @@ function BattleAnalyticsDetailPage() {
 
               <div className="mt-2 flex flex-wrap gap-2">
                 {task.error_frequencies.map((errorItem) => (
-                  <Badge key={`${task.task_id}-${errorItem.key}`} variant="outline">
+                  <Badge
+                    key={`${task.task_id}-${errorItem.key}`}
+                    variant="outline"
+                  >
                     {errorItem.key}: {errorItem.count}
                   </Badge>
                 ))}
@@ -348,7 +292,9 @@ function BattleAnalyticsDetailPage() {
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <input
                 checked={showAllSubmissions}
-                onChange={(event) => setShowAllSubmissions(event.target.checked)}
+                onChange={(event) =>
+                  setShowAllSubmissions(event.target.checked)
+                }
                 type="checkbox"
               />
               Показывать все посылки (не только мои)
@@ -359,7 +305,10 @@ function BattleAnalyticsDetailPage() {
             <Typography variant="muted">Посылок пока нет</Typography>
           )}
           {visibleSubmissions.map((submission) => (
-            <details className="rounded-lg border p-3" key={submission.submission_id}>
+            <details
+              className="rounded-lg border p-3"
+              key={submission.submission_id}
+            >
               <summary className="cursor-pointer">
                 <div className="flex items-center justify-between gap-2">
                   <Typography className="font-semibold" variant="small">
@@ -392,7 +341,7 @@ function BattleAnalyticsDetailPage() {
                 <Typography className="mb-2 font-semibold" variant="small">
                   Отправленный код
                 </Typography>
-                <pre className="overflow-x-auto whitespace-pre-wrap text-xs">
+                <pre className="overflow-x-auto text-xs whitespace-pre-wrap">
                   {submission.source_code}
                 </pre>
               </div>
@@ -410,7 +359,10 @@ function BattleAnalyticsDetailPage() {
                     <span>{testResult.verdict}</span>
                     <span>{testResult.execution_time_ms} мс</span>
                     <span>{testResult.execution_memory_kb} KB</span>
-                    <span className="truncate" title={testResult.error_message ?? ''}>
+                    <span
+                      className="truncate"
+                      title={testResult.error_message ?? ''}
+                    >
                       {testResult.error_message || 'ok'}
                     </span>
                   </div>
@@ -436,25 +388,11 @@ function formatDuration(totalSeconds: number) {
   return `${minutes}м ${seconds}с`
 }
 
-function formatElapsedRatioPercent(value: number) {
-  return `${Math.round(value * 100)}%`
-}
-
-function formatRiskLevel(value: string) {
-  if (value === 'high') return 'высокий'
-  if (value === 'medium') return 'средний'
-  if (value === 'low') return 'низкий'
-  return value
-}
-
-function formatRiskScorePercent(value: number) {
-  return `${Math.round(value * 100)}%`
-}
-
 function getPassedTests(submission: BattleSubmissionWithDetails) {
   if (submission.passed_tests != null) return submission.passed_tests
-  return getTestResults(submission).filter((testResult) => testResult.verdict === 'ACCEPTED')
-    .length
+  return getTestResults(submission).filter(
+    (testResult) => testResult.verdict === 'ACCEPTED',
+  ).length
 }
 
 function getTestResults(submission: BattleSubmissionWithDetails) {
@@ -466,13 +404,7 @@ function getTotalTests(submission: BattleSubmissionWithDetails) {
   return getTestResults(submission).length
 }
 
-function Metric({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
     <Card>
       <CardContent className="pt-0">
@@ -485,13 +417,7 @@ function Metric({
   )
 }
 
-function MetricLine({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
+function MetricLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between rounded-md border px-3 py-2">
       <Typography variant="muted">{label}</Typography>

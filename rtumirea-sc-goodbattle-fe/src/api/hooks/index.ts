@@ -1,13 +1,11 @@
 export {
   adminPlatformAnalyticsQueryOptions,
   battleAnalyticsQueryOptions,
-  battleMlRiskQueryOptions,
   organizerAnalyticsQueryOptions,
   participantAnalyticsQueryOptions,
   participantPublicAnalyticsQueryOptions,
   useAdminPlatformAnalyticsQuery,
   useBattleAnalyticsQuery,
-  useBattleMlRiskQuery,
   useOrganizerAnalyticsQuery,
   useParticipantAnalyticsQuery,
   useParticipantPublicAnalyticsQuery,
@@ -30,3 +28,4 @@ export {
   useRoomQuery,
 } from './rooms'
 export { tasksQueryOptions, useCreateTask, useTasksQuery } from './tasks'
+export { useAiAnalyticsQuery } from './ai-analytics'

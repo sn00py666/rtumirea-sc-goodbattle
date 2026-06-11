@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 from collections.abc import Iterator
 from typing import Any, Dict, List, Protocol
+from urllib.parse import urlparse
 
 from openai import OpenAI
 
@@ -232,12 +233,41 @@ class LlmClientFactory:
         if not api_key:
             raise ValueError('OPENAI_API_KEY is not configured')
 
-        base_url = os.getenv('OPENAI_BASE_URL', '').strip() or None
-        if provider in {'openai', 'openai_compatible'}:
+        base_url = self._resolve_base_url(provider=provider)
+        if provider in {'openai', 'openai_compatible', 'nekocode'}:
             logger.info('AI client init: provider=%s model=%s base_url=%s', provider, model, base_url or '<default>')
             return OpenAI(api_key=api_key, base_url=base_url)
 
         raise ValueError(f'Unsupported LLM provider: {provider}')
+
+    def _resolve_base_url(self, *, provider: str) -> str | None:
+        configured_base_url = os.getenv('OPENAI_BASE_URL', '').strip()
+        if configured_base_url:
+            return self._normalize_base_url(configured_base_url)
+
+        if provider == 'nekocode':
+            channel = os.getenv('NEKOCODE_CHANNEL', '').strip() or 'alpha'
+            return f'https://gateway.nekocode.app/{channel}/v1'
+
+        return None
+
+    @staticmethod
+    def _normalize_base_url(base_url: str) -> str:
+        normalized = base_url.strip()
+        if not normalized:
+            raise ValueError('OPENAI_BASE_URL is empty')
+
+        if not re.match(r'^https?://', normalized, flags=re.IGNORECASE):
+            normalized = f'https://{normalized}'
+
+        parsed = urlparse(normalized)
+        if not parsed.scheme or not parsed.netloc:
+            raise ValueError(
+                'OPENAI_BASE_URL has invalid format. Expected full URL like '
+                'https://gateway.nekocode.app/alpha/v1'
+            )
+
+        return normalized.rstrip('/')
 
 
 class HintContextStrategy(Protocol):

@@ -17,7 +17,8 @@ import {
 
 export const Route = createFileRoute('/(app)/admin-analytics')({
   component: AdminAnalyticsPage,
-  loader: () => queryClient.ensureQueryData(adminPlatformAnalyticsQueryOptions()),
+  loader: () =>
+    queryClient.ensureQueryData(adminPlatformAnalyticsQueryOptions()),
   pendingComponent: PagePending,
 })
 
@@ -150,13 +151,7 @@ function AdminAnalyticsPage() {
   )
 }
 
-function Metric({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
     <Card>
       <CardContent className="pt-0">
@@ -169,13 +164,7 @@ function Metric({
   )
 }
 
-function MetricLine({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
+function MetricLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between rounded-md border px-3 py-2">
       <Typography variant="muted">{label}</Typography>

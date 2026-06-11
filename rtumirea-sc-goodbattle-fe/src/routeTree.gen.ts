@@ -20,6 +20,7 @@ import { Route as appOrganizerAnalyticsRouteImport } from './routes/(app)/organi
 import { Route as appCreateRoomRouteImport } from './routes/(app)/create-room'
 import { Route as appBattlesRouteImport } from './routes/(app)/battles'
 import { Route as appAnalyticsRouteImport } from './routes/(app)/analytics'
+import { Route as appAiAnalyticsRouteImport } from './routes/(app)/ai-analytics'
 import { Route as appAdminAnalyticsRouteImport } from './routes/(app)/admin-analytics'
 import { Route as appUsersUserIdRouteImport } from './routes/(app)/users/$userId'
 import { Route as appRoomsRoomIdRouteImport } from './routes/(app)/rooms/$roomId'
@@ -79,6 +80,11 @@ const appAnalyticsRoute = appAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => appRouteRoute,
 } as any)
+const appAiAnalyticsRoute = appAiAnalyticsRouteImport.update({
+  id: '/ai-analytics',
+  path: '/ai-analytics',
+  getParentRoute: () => appRouteRoute,
+} as any)
 const appAdminAnalyticsRoute = appAdminAnalyticsRouteImport.update({
   id: '/admin-analytics',
   path: '/admin-analytics',
@@ -108,6 +114,7 @@ const appBattleAnalyticsBattleIdRoute =
 
 export interface FileRoutesByFullPath {
   '/admin-analytics': typeof appAdminAnalyticsRoute
+  '/ai-analytics': typeof appAiAnalyticsRoute
   '/analytics': typeof appAnalyticsRoute
   '/battles': typeof appBattlesRouteWithChildren
   '/create-room': typeof appCreateRoomRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/admin-analytics': typeof appAdminAnalyticsRoute
+  '/ai-analytics': typeof appAiAnalyticsRoute
   '/analytics': typeof appAnalyticsRoute
   '/battles': typeof appBattlesRouteWithChildren
   '/create-room': typeof appCreateRoomRoute
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/(app)': typeof appRouteRouteWithChildren
   '/(auth)': typeof authRouteRouteWithChildren
   '/(app)/admin-analytics': typeof appAdminAnalyticsRoute
+  '/(app)/ai-analytics': typeof appAiAnalyticsRoute
   '/(app)/analytics': typeof appAnalyticsRoute
   '/(app)/battles': typeof appBattlesRouteWithChildren
   '/(app)/create-room': typeof appCreateRoomRoute
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/admin-analytics'
+    | '/ai-analytics'
     | '/analytics'
     | '/battles'
     | '/create-room'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/admin-analytics'
+    | '/ai-analytics'
     | '/analytics'
     | '/battles'
     | '/create-room'
@@ -195,6 +206,7 @@ export interface FileRouteTypes {
     | '/(app)'
     | '/(auth)'
     | '/(app)/admin-analytics'
+    | '/(app)/ai-analytics'
     | '/(app)/analytics'
     | '/(app)/battles'
     | '/(app)/create-room'
@@ -294,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof appAnalyticsRouteImport
       parentRoute: typeof appRouteRoute
     }
+    '/(app)/ai-analytics': {
+      id: '/(app)/ai-analytics'
+      path: '/ai-analytics'
+      fullPath: '/ai-analytics'
+      preLoaderRoute: typeof appAiAnalyticsRouteImport
+      parentRoute: typeof appRouteRoute
+    }
     '/(app)/admin-analytics': {
       id: '/(app)/admin-analytics'
       path: '/admin-analytics'
@@ -346,6 +365,7 @@ const appBattlesRouteWithChildren = appBattlesRoute._addFileChildren(
 
 interface appRouteRouteChildren {
   appAdminAnalyticsRoute: typeof appAdminAnalyticsRoute
+  appAiAnalyticsRoute: typeof appAiAnalyticsRoute
   appAnalyticsRoute: typeof appAnalyticsRoute
   appBattlesRoute: typeof appBattlesRouteWithChildren
   appCreateRoomRoute: typeof appCreateRoomRoute
@@ -360,6 +380,7 @@ interface appRouteRouteChildren {
 
 const appRouteRouteChildren: appRouteRouteChildren = {
   appAdminAnalyticsRoute: appAdminAnalyticsRoute,
+  appAiAnalyticsRoute: appAiAnalyticsRoute,
   appAnalyticsRoute: appAnalyticsRoute,
   appBattlesRoute: appBattlesRouteWithChildren,
   appCreateRoomRoute: appCreateRoomRoute,

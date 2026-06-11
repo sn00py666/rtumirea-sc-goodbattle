@@ -84,7 +84,7 @@ src/
 ## Скрипты
 
 ```bash
-v       # Запуск dev-сервера
+pnpm dev       # Запуск dev-сервера
 pnpm build      # Сборка (typecheck + vite build)
 pnpm typecheck  # Проверка типов
 pnpm lint       # Линтинг

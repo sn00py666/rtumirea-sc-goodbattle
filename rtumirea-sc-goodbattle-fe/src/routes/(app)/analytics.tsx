@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { BarChart3, Crown, Shield, User } from 'lucide-react'
+import { BarChart3, Crown, Shield, Sparkles, User } from 'lucide-react'
 
 import { profileQueryOptions, queryClient, useProfileQuery } from '@/api'
 import {
@@ -35,7 +35,7 @@ function AnalyticsHubPage() {
         </Typography>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -86,8 +86,27 @@ function AnalyticsHubPage() {
                 <Link to="/admin-analytics">Открыть</Link>
               </Button>
             ) : (
-              <Typography variant="muted">Доступно только администраторам</Typography>
+              <Typography variant="muted">
+                Доступно только администраторам
+              </Typography>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Sparkles className="size-5 text-primary" />
+              AI аналитика
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Typography variant="muted">
+              Задавайте вопросы по данным платформы и получайте отчеты с SQL.
+            </Typography>
+            <Button asChild variant="default">
+              <Link to="/ai-analytics">Открыть</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -98,9 +117,7 @@ function AnalyticsHubPage() {
             <Typography className="font-semibold" variant="h3">
               Быстрый переход
             </Typography>
-            <Typography variant="muted">
-              К истории баттлов и профилю
-            </Typography>
+            <Typography variant="muted">К истории баттлов и профилю</Typography>
           </div>
           <div className="flex gap-2">
             <Button asChild variant="outline">

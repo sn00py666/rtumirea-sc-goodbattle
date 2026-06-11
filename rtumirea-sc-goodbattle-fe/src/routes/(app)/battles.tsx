@@ -71,15 +71,15 @@ function BattleCard({
       return
     }
 
-    navigate({ params: { battleId: battle.id }, to: '/battle-analytics/$battleId' })
+    navigate({
+      params: { battleId: battle.id },
+      to: '/battle-analytics/$battleId',
+    })
   }
 
   return (
     <Card
-      className={cn(
-        'transition-colors hover:bg-muted/50',
-        'cursor-pointer',
-      )}
+      className={cn('transition-colors hover:bg-muted/50', 'cursor-pointer')}
       onClick={handleClick}
     >
       <CardHeader>

@@ -41,13 +41,7 @@ function formatDuration(totalSeconds: number) {
   return `${minutes}м ${seconds}с`
 }
 
-function Metric({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
     <Card>
       <CardContent className="pt-0">
@@ -60,13 +54,7 @@ function Metric({
   )
 }
 
-function MetricLine({
-  label,
-  value,
-}: {
-  label: string
-  value: string
-}) {
+function MetricLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between rounded-md border px-3 py-2">
       <Typography variant="muted">{label}</Typography>
@@ -82,8 +70,12 @@ function OrganizerAnalyticsPage() {
   const analytics = analyticsQuery.data
 
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'finished' | 'in_progress'>('all')
-  const [sortBy, setSortBy] = useState<'date_asc' | 'date_desc' | 'participants_desc' | 'solved_desc'>('date_desc')
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'finished' | 'in_progress'
+  >('all')
+  const [sortBy, setSortBy] = useState<
+    'date_asc' | 'date_desc' | 'participants_desc' | 'solved_desc'
+  >('date_desc')
 
   const filteredBattles = useMemo(() => {
     let data = (analytics?.battles ?? []).slice()
@@ -122,16 +114,19 @@ function OrganizerAnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-4 gap-4">
-        <Metric label="Баттлов" value={String(analytics.organized_battles_count)} />
-        <Metric label="Ср. участников" value={String(analytics.average_participants)} />
+        <Metric
+          label="Баттлов"
+          value={String(analytics.organized_battles_count)}
+        />
+        <Metric
+          label="Ср. участников"
+          value={String(analytics.average_participants)}
+        />
         <Metric
           label="Ср. решаемость"
           value={`${analytics.average_solved_percent}%`}
         />
-        <Metric
-          label="Hint usage"
-          value={`${analytics.hint_usage_share}%`}
-        />
+        <Metric label="Hint usage" value={`${analytics.hint_usage_share}%`} />
       </div>
 
       <Card>
@@ -147,7 +142,9 @@ function OrganizerAnalyticsPage() {
             label="Ср. длительность баттла"
             value={
               analytics.average_battle_duration_seconds != null
-                ? formatDuration(Math.round(analytics.average_battle_duration_seconds))
+                ? formatDuration(
+                    Math.round(analytics.average_battle_duration_seconds),
+                  )
                 : 'N/A'
             }
           />
@@ -204,7 +201,9 @@ function OrganizerAnalyticsPage() {
             <select
               className="h-10 rounded-md border bg-background px-3 text-sm"
               onChange={(event) =>
-                setStatusFilter(event.target.value as 'all' | 'finished' | 'in_progress')
+                setStatusFilter(
+                  event.target.value as 'all' | 'finished' | 'in_progress',
+                )
               }
               value={statusFilter}
             >
@@ -236,7 +235,10 @@ function OrganizerAnalyticsPage() {
             <Typography variant="muted">Баттлы не найдены</Typography>
           )}
           {filteredBattles.map((battle) => (
-            <div className="flex items-center justify-between rounded-lg border p-3" key={battle.id}>
+            <div
+              className="flex items-center justify-between rounded-lg border p-3"
+              key={battle.id}
+            >
               <div>
                 <Typography className="font-semibold" variant="h3">
                   {battle.title}

@@ -392,19 +392,18 @@ class AdminPlatformAnalyticsResponse(ApiModel):
     peaks_by_weekday: List[PeakLoadBucketResponse]
 
 
-class BattleMlRiskPredictionResponse(ApiModel):
-    participant_id: str
-    user_id: str
-    username: str
-    attempts: int
-    elapsed_ratio: float
-    risk_score: float
-    risk_level: str
-    confidence: str
+class AiAnalyticsQueryRequest(ApiModel):
+    question: str = Field(min_length=3, max_length=700)
 
 
-class BattleMlRiskResponse(ApiModel):
-    battle_id: str
-    task_id: str
+class AiAnalyticsQueryResponse(ApiModel):
+    question: str
+    sql: str
+    sql_explanation: str
+    report_markdown: str
+    columns: List[str]
+    rows: List[Dict[str, Any]]
+    row_count: int
+    truncated: bool
     model: str
-    predictions: List[BattleMlRiskPredictionResponse]
+    generated_at: datetime
